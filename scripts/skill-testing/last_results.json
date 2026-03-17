@@ -1,0 +1,45 @@
+{
+  "tested_at": "2026-03-17T06:21:27.061258",
+  "overall_score": 0.9571428571428572,
+  "results": {
+    "pydantic-extractor": {
+      "recall": 1.0,
+      "precision": 0.6,
+      "missed": []
+    },
+    "dbt-conventions": {
+      "recall": 1.0,
+      "precision": 1.0,
+      "missed": []
+    },
+    "airflow-dag-pattern": {
+      "recall": 1.0,
+      "precision": 1.0,
+      "missed": []
+    },
+    "edge-case-checklist": {
+      "recall": 0.9,
+      "precision": 1.0,
+      "missed": [
+        "Is the retry logic correct here?"
+      ]
+    },
+    "sql-optimizer": {
+      "recall": 1.0,
+      "precision": 1.0,
+      "missed": []
+    },
+    "data-quality": {
+      "recall": 0.9,
+      "precision": 1.0,
+      "missed": [
+        "Add dbt_utils recency test"
+      ]
+    },
+    "update-context": {
+      "recall": 1.0,
+      "precision": 1.0,
+      "missed": []
+    }
+  }
+}

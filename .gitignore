@@ -1,0 +1,47 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Personal Claude preferences (machine-specific)
+CLAUDE.local.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Data
+*.csv
+*.parquet
+*.json.gz
+minio_data/
+postgres_data/
+airflow_logs/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+
+# Secrets
+*.pem
+*.key
+*.p12

@@ -1,0 +1,80 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Staging buffer — truncated before each pipeline run"
+    tables:
+      - name: facebook_ads
+        description: "Raw Facebook Ads insights from API"
+        columns:
+          - name: campaign_id
+            tests: [not_null]
+          - name: date
+            tests: [not_null]
+
+models:
+
+  # ── Staging ──────────────────────────────────────────────
+  - name: stg_facebook_ads
+    description: "Cleaned Facebook Ads data — rename + cast only"
+    columns:
+      - name: campaign_id
+        tests: [not_null]
+      - name: date
+        tests: [not_null]
+      - name: platform
+        tests:
+          - not_null
+          - accepted_values:
+              values: [facebook]
+      - name: spend
+        tests: [not_null]
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "spend >= 0"
+          name: stg_facebook_spend_non_negative
+      - dbt_utils.expression_is_true:
+          expression: "leads >= 0"
+          name: stg_facebook_leads_non_negative
+      - dbt_utils.expression_is_true:
+          expression: "clicks <= impressions or impressions = 0"
+          name: stg_facebook_clicks_leq_impressions
+
+  # ── Marts ────────────────────────────────────────────────
+  - name: fct_ad_spend
+    description: >
+      Daily ad spend metrics by campaign.
+      Source of truth for CPL and spend reporting.
+      CPL = spend / CRM leads (not platform lead count — EC-04).
+    columns:
+      - name: date
+        tests: [not_null]
+      - name: platform
+        tests:
+          - not_null
+          - accepted_values:
+              values: [facebook, google, tiktok, zalo]
+      - name: campaign_id
+        tests: [not_null]
+      - name: office
+        tests:
+          - accepted_values:
+              values: [HCM, HN, DN, UNKNOWN]
+      - name: spend
+        tests: [not_null]
+    tests:
+      - unique:
+          column_name: >
+            date::text || '_' || platform || '_' ||
+            campaign_id || '_' || coalesce(ad_set_id, 'null')
+          name: fct_ad_spend_unique_grain
+      - dbt_utils.expression_is_true:
+          expression: "spend >= 0"
+      - dbt_utils.expression_is_true:
+          expression: "leads >= 0"
+      - dbt_utils.recency:
+          datepart: hour
+          field: updated_at
+          interval: 25
+          name: fct_ad_spend_freshness_sla

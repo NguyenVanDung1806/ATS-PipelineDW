@@ -1,0 +1,154 @@
+{
+  "model": "claude-sonnet-4-6",
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose *)",
+      "Bash(docker *)",
+      "Bash(dbt *)",
+      "Bash(airflow *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+      "Bash(psql *)",
+      "Bash(mc *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(echo *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(chmod *)",
+      "Bash(pytest *)",
+      "Read(**)",
+      "Write(extractors/**)",
+      "Write(dbt/**)",
+      "Write(dags/**)",
+      "Write(infra/**)",
+      "Write(scripts/**)",
+      "Write(tests/**)",
+      "Write(docs/**)",
+      "Write(notebooks/**)",
+      "Write(MEMORY.md)",
+      "Write(CLAUDE.md)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(production*)",
+      "Write(*.prod.*)",
+      "Bash(rm -rf *)",
+      "Bash(DROP TABLE *)",
+      "Bash(DROP SCHEMA *)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(git push --force)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write(extractors/**/*.py)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $(git rev-parse --show-toplevel) && python3 -m black $file --quiet 2>/dev/null && echo '[hook] ✓ black: formatted' || echo '[hook] ⚠ black: install with pip3 install black'",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python3 -m mypy $file --ignore-missing-imports --no-error-summary --quiet 2>/dev/null && echo '[hook] ✓ mypy: types OK' || echo '[hook] ⚠ mypy: type issues found (non-blocking)'",
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": "Write(dbt/models/**/*.sql)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && MODEL=$(basename $file .sql) && cd $ROOT/dbt && dbt compile --select $MODEL --quiet 2>&1; RC=$?; [ $RC -eq 0 ] && echo '[hook] dbt compile: OK' || (echo '[hook] dbt compile: ERRORS — fix before running' && exit 1)",
+            "timeout": 60
+          }
+        ]
+      },
+      {
+        "matcher": "Write(dags/**/*.py)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import ast; ast.parse(open('$file').read()); print('[hook] ✓ DAG syntax: valid')\" 2>/dev/null || echo '[hook] ✗ DAG syntax: ERROR — check file'",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write(extractors/**/schema.py)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import importlib.util,sys; spec=importlib.util.spec_from_file_location('s','$file'); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); print('[hook] ✓ Pydantic schema: importable')\" 2>/dev/null || echo '[hook] ✗ Pydantic schema: import error'",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Write(infra/docker-compose.yml)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docker-compose -f $file config --quiet 2>/dev/null && echo '[hook] ✓ docker-compose: valid YAML' || echo '[hook] ✗ docker-compose: invalid — check syntax'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && python3 $ROOT/scripts/validate/check_credentials.py; RC=$?; [ $RC -eq 0 ] && echo '[hook] Security: clean' || (echo '[hook] BLOCKED: credential found' && exit 1)",
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(dbt run *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && cd $ROOT/dbt && dbt compile --quiet 2>&1; RC=$?; [ $RC -eq 0 ] && echo '[hook] Pre-run compile: OK' || (echo '[hook] Compile errors — fix before dbt run' && exit 1)",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd) && python3 $ROOT/scripts/context/context_manager.py session-end 2>/dev/null || echo '[context] Update MEMORY.md manually before closing'",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
