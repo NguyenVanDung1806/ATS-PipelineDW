@@ -1,0 +1,79 @@
+# Sau khi tạo xong docker-compose.yml
+git add .
+git commit -m "feat: add docker-compose full stack"
+git push
+
+# Sau khi viết DAG Airflow
+git add .
+git commit -m "feat: add facebook ads DAG"
+git push
+
+# Sau khi fix bug
+git add .
+git commit -m "fix: fix MinIO connection timeout"
+git push
+
+
+
+
+
+
+The user wants to know the startup sequence when they come back to work on the project. Let me think about what they need to do each time they start a new work session.
+
+Quy trình mở lại dự án
+1 lệnh duy nhất để start tất cả:
+
+cd ~/Desktop/ATS-DW
+make up
+Đợi ~30 giây rồi verify:
+
+
+make ps
+Tất cả phải hiện healthy / running.
+
+Các URL sau khi up:
+Service	URL	Login
+Airflow	http://localhost:8080	admin / password trong .env
+MinIO	http://localhost:9001	MINIO_ACCESS_KEY / MINIO_SECRET_KEY
+Metabase	http://localhost:3000	setup lần đầu
+PostgreSQL	localhost:5434	dùng DBeaver/TablePlus
+Khi kết thúc session:
+
+make down
+Lưu ý quan trọng:
+PostgreSQL data, MinIO data, Airflow logs đều được lưu trong Docker volumes — tắt máy/container không mất data
+Chỉ mất data nếu chạy docker volume rm hoặc docker-compose down -v (flag -v xóa volumes)
+Để tôi update MEMORY.md ghi lại Phase 0 đã hoàn thành:
+
+Edit MEMORY.md
+Edit failed
+Read MEMORY.md
+Edit MEMORY.md
+Modified
+Edit MEMORY.md
+Modified
+Edit MEMORY.md
+Modified
+Edit MEMORY.md
+Added 5 lines
+MEMORY.md đã cập nhật. Tóm tắt quy trình mở lại dự án:
+
+Mỗi lần mở lại dự án
+
+cd ~/Desktop/ATS-DW
+
+# 1. Start infrastructure
+make up
+
+# 2. Verify (sau ~30 giây)
+make ps
+
+# 3. Mở Claude Code và tiếp tục
+claude
+Tắt:
+
+
+make down
+Lần tới session đầu tiên nói với Claude:
+
+"Read CLAUDE.md and MEMORY.md. Phase 0 done. Bắt đầu Phase 1 — /run-phase 1"

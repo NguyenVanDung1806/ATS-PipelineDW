@@ -1,10 +1,10 @@
-de_template:
+ats_marketing:
   target: dev
   outputs:
     dev:
       type: postgres
       host: localhost
-      port: 5432
+      port: 5434
       user: "{{ env_var('POSTGRES_USER') }}"
       password: "{{ env_var('POSTGRES_PASSWORD') }}"
       dbname: "{{ env_var('POSTGRES_DB') }}"

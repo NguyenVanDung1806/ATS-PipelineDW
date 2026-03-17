@@ -20,13 +20,18 @@ SCHEDULE = "0 2 * * *"         # 9h ICT (2h UTC) — EC-09
 # ── Alerting ──────────────────────────────────────────────
 def slack_alert_failure(context: dict) -> None:
     """Required on every DAG. Never remove."""
+    webhook_url = os.environ.get("SLACK_WEBHOOK_URL")
+    if not webhook_url:
+        print("SLACK_WEBHOOK_URL not set — skipping alert")
+        return
+
     dag_id  = context["dag"].dag_id
     task_id = context["task_instance"].task_id
     error   = str(context.get("exception", "Unknown"))[:400]
     log_url = context["task_instance"].log_url
 
     requests.post(
-        os.environ["SLACK_WEBHOOK_URL"],
+        webhook_url,
         json={"text": (
             f":rotating_light: *Pipeline FAILED*\n"
             f"DAG: `{dag_id}` | Task: `{task_id}`\n"

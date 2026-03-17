@@ -22,29 +22,29 @@ setup: ## One-command first-time setup
 
 # ── Infrastructure ────────────────────────────────────────────────────────────
 up: ## Start all Docker services
-	docker-compose -f infra/docker-compose.yml up -d
+	docker-compose -f infra/docker-compose.yml --env-file .env up -d
 	@echo "$(GREEN)Services starting...$(RESET)"
 	@echo "  Airflow:  http://localhost:8080"
 	@echo "  MinIO:    http://localhost:9001"
 	@echo "  Metabase: http://localhost:3000"
 
 down: ## Stop all Docker services
-	docker-compose -f infra/docker-compose.yml down
+	docker-compose -f infra/docker-compose.yml --env-file .env down
 
 restart: ## Restart all services
-	docker-compose -f infra/docker-compose.yml restart
+	docker-compose -f infra/docker-compose.yml --env-file .env restart
 
 ps: ## Show service status
-	docker-compose -f infra/docker-compose.yml ps
+	docker-compose -f infra/docker-compose.yml --env-file .env ps
 
 logs: ## Follow all service logs
-	docker-compose -f infra/docker-compose.yml logs -f
+	docker-compose -f infra/docker-compose.yml --env-file .env logs -f
 
 logs-airflow: ## Follow Airflow scheduler logs
-	docker-compose -f infra/docker-compose.yml logs -f airflow-scheduler
+	docker-compose -f infra/docker-compose.yml --env-file .env logs -f airflow-scheduler
 
 logs-postgres: ## Follow PostgreSQL logs
-	docker-compose -f infra/docker-compose.yml logs -f postgres
+	docker-compose -f infra/docker-compose.yml --env-file .env logs -f postgres
 
 # ── dbt ───────────────────────────────────────────────────────────────────────
 dbt-deps: ## Install dbt packages

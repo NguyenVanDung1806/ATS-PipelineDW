@@ -13,7 +13,7 @@ def get_minio_client():
 
 def ensure_bucket_exists(bucket: str | None = None) -> None:
     """Call once during setup. MinIO doesn't auto-create buckets."""
-    bucket = bucket or os.environ.get("MINIO_BUCKET", "datalake")
+    bucket = bucket or os.environ.get("MINIO_BUCKET", "ats-datalake")
     client = get_minio_client()
     try:
         client.head_bucket(Bucket=bucket)

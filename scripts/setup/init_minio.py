@@ -8,7 +8,7 @@ FOLDERS = ["raw/facebook/ads/","raw/google/ads/","raw/tiktok/ads/",
 
 def init():
     from extractors.base.minio_client import get_minio_client
-    bucket = os.environ.get("MINIO_BUCKET", "datalake")
+    bucket = os.environ.get("MINIO_BUCKET", "ats-datalake")
     client = get_minio_client()
     try:
         client.head_bucket(Bucket=bucket)
