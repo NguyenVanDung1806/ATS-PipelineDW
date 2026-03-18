@@ -7,6 +7,7 @@
 | DAG | Platform | Schedule | Status |
 |-----|----------|----------|--------|
 | template_pipeline | — | — | TEMPLATE — copy this |
+| facebook_pipeline | facebook | 0 2 * * * (09:00 ICT) | ✓ LIVE — 3x end-to-end verified, idempotent |
 
 ## Schedule Convention
 ```
@@ -31,4 +32,4 @@ cp dags/template_pipeline.py dags/facebook_pipeline.py
 - BashOperator for dbt tasks (not PythonOperator)
 
 ## Current Focus
-Working on: —
+Working on: Phase 2 — next platform extractor (Google Ads or TikTok)

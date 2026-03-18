@@ -70,7 +70,7 @@ def check_dependencies() -> bool:
 def start_services() -> bool:
     info("Starting Docker services (this may take 2-3 minutes first time)...")
     ok_flag, out = run(
-        ["docker-compose", "-f", "infra/docker-compose.yml", "up", "-d"],
+        ["docker-compose", "-f", "infra/docker-compose.yml", "--env-file", ".env", "up", "-d"],
         timeout=300
     )
     if not ok_flag:

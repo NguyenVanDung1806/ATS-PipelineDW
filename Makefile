@@ -112,11 +112,4 @@ check-disk: ## Check VPS disk usage
 	du -sh infra/minio_data 2>/dev/null || echo "MinIO data: check Docker volume"
 
 env-check: ## Verify .env has all required variables
-	@python3 -c "
-import sys
-required = ['POSTGRES_DB','POSTGRES_USER','POSTGRES_PASSWORD','MINIO_ACCESS_KEY','MINIO_SECRET_KEY','AIRFLOW_FERNET_KEY','SLACK_WEBHOOK_URL']
-content = open('.env').read() if __import__('os').path.exists('.env') else ''
-missing = [k for k in required if k not in content or k+'=CHANGE_ME' in content]
-print('Missing/unfilled:', missing) if missing else print('All required env vars set')
-sys.exit(1 if missing else 0)
-"
+	@python3 -c "import sys,os; r=['POSTGRES_DB','POSTGRES_USER','POSTGRES_PASSWORD','MINIO_ACCESS_KEY','MINIO_SECRET_KEY','AIRFLOW_FERNET_KEY','SLACK_WEBHOOK_URL']; c=open('.env').read() if os.path.exists('.env') else ''; m=[k for k in r if k not in c or k+'=CHANGE_ME' in c]; print('Missing/unfilled:',m) if m else print('All required env vars set'); sys.exit(1 if m else 0)"

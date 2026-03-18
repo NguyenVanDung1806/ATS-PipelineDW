@@ -56,6 +56,24 @@ CREATE TABLE IF NOT EXISTS meta.schema_versions (
     notes       TEXT
 );
 
+-- ── raw.facebook_ads ────────────────────────────────────
+-- Staging buffer: TRUNCATE before every pipeline run (idempotent)
+-- No PK — staging is always fresh, duplicates impossible
+CREATE TABLE IF NOT EXISTS raw.facebook_ads (
+    campaign_id     TEXT,
+    campaign_name   TEXT,
+    ad_set_id       TEXT,
+    ad_set_name     TEXT,
+    ad_id           TEXT,
+    ad_name         TEXT,
+    date            DATE,
+    spend           NUMERIC(12, 4),   -- FB returns string, coerced to numeric
+    impressions     INT,
+    clicks          INT,
+    leads           INT DEFAULT 0,    -- EC-05: may be 0 if no lead form
+    loaded_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Comments
 COMMENT ON SCHEMA raw  IS 'Staging buffer — TRUNCATE before each pipeline run';
 COMMENT ON SCHEMA dw   IS 'Data Warehouse — fact/dim, partitioned monthly, UPSERT only';

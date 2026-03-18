@@ -10,10 +10,10 @@ import requests, os
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.bash.operators.bash import BashOperator
+from airflow.operators.bash import BashOperator
 
 # ── Platform config ────────────────────────────────────────
-PLATFORM = "facebook"          # change per platform
+PLATFORM = "TEMPLATE"          # change per platform — DO NOT USE as-is
 SCHEDULE = "0 2 * * *"         # 9h ICT (2h UTC) — EC-09
 
 

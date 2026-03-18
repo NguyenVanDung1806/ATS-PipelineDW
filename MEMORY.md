@@ -7,12 +7,12 @@
 
 ## QUICK CONTEXT (Claude reads this first)
 ```
-Phase:        0 — Infrastructure Setup
+Phase:        2 — Multi-Platform
 Current file:        MEMORY.md
-Last action:        Modified template_pipeline.py, init_minio.py
-Next action:        Create first Airflow DAG in dags/
+Last action:        Modified facebook_pipeline.py, test_extract.py
+Next action:        —
 Blocked on:        FB_ACCESS_TOKEN (cần từ Facebook Business Manager)
-Last session:        2026-03-17
+Last session:        2026-03-18
 ```
 
 ---
@@ -81,6 +81,105 @@ Last session:        2026-03-17
 ```
 
 ## Session Notes
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 20 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 19 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 18 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 18 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 18 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 17 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 13 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 13 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 12 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 12 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 9 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-17 — Auto-logged
+- Branch: main | Changed: 1 files
 
 ### 2026-03-17 — Auto-logged
 - Branch: main | Changed: 15 files

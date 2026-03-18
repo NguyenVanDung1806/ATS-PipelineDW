@@ -68,6 +68,9 @@ make up
 # 2. Verify (sau ~30 giây)
 make ps
 
+#check data
+
+docker exec de_postgres psql -U <user> -d <db> -c "SELECT COUNT(*) FROM dw.fct_ad_spend"
 # 3. Mở Claude Code và tiếp tục
 claude
 Tắt:

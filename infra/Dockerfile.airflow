@@ -1,0 +1,7 @@
+FROM apache/airflow:2.9.3-python3.12
+
+# Install dbt-postgres (pinned exact versions to avoid resolver timeout)
+# boto3, tenacity already in base image; postgres provider already installed
+RUN pip install --no-cache-dir \
+    "dbt-postgres==1.8.2" \
+    "facebook-business==20.0.3"

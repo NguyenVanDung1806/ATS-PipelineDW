@@ -218,6 +218,10 @@ processed/{platform}/{entity}/year={Y}/month={M}/
 - FB Insights API: use `time_range` dict, NOT `date_preset` for custom ranges
 - FB Lead Form: không có UTM → dùng `fb_lead_id` làm join key với campaign
 - FB rate limit: 200 calls/hour — dùng batch mode (50 requests/batch)
+- FB leads: ATS dùng 3 action types — `offsite_conversion.fb_pixel_lead` (priority) > `lead` > `onsite_web_lead` — KHÔNG cộng cả 2 (double-count)
+- FB leads = 0 không có nghĩa là campaign không chạy — có thể là Traffic objective, check action_type trước
+- FB currency ATS = VND (confirmed 2026-03-18, Open Question #3 resolved)
+- FB ad account ID: extractor tự thêm prefix `act_` — không cần trong .env
 - pg_partman: run `partman.run_maintenance()` after creating parent table
 - dbt incremental UPSERT: must include partition key in `unique_key` list
 - Airflow 2.9: use `@task` decorator pattern, avoid old `PythonOperator` where possible
@@ -257,9 +261,9 @@ processed/{platform}/{entity}/year={Y}/month={M}/
 ## Current Phase
 
 ```
-Phase:       0 — Infrastructure Setup
-Status:      In Progress
-Last session: 2026-03-17
+Phase:       1 — Facebook Ads Pipeline
+Status:      In Progress — extractor + DAG done, end-to-end pending Docker up
+Last session: 2026-03-18
 ```
 
 **Update this section every session.**

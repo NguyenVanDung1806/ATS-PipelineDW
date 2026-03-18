@@ -28,7 +28,7 @@ renamed as (
         greatest(coalesce(leads::int, 0), 0)        as leads,
 
         -- metadata
-        _loaded_at::timestamptz                     as loaded_at
+        loaded_at::timestamptz                      as loaded_at
 
     from source
 
