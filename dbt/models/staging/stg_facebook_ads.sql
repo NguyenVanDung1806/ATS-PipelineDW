@@ -15,7 +15,9 @@ renamed as (
         campaign_id::text                           as campaign_id,
         campaign_name::text                         as campaign_name,
         coalesce(ad_set_id::text, 'unknown')        as ad_set_id,
+        coalesce(ad_set_name::text, 'unknown')      as ad_set_name,
         coalesce(ad_id::text, 'unknown')            as ad_id,
+        coalesce(ad_name::text, 'unknown')          as ad_name,
 
         -- dimensions
         date::date                                  as date,

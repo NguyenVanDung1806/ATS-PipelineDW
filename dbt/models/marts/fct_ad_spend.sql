@@ -17,8 +17,11 @@ with spend as (
     select * from {{ ref('stg_facebook_ads') }}
 
     {% if is_incremental() %}
-    -- EC-06: lookback 7 days for retroactive attribution updates
-    where date >= (select max(date) - interval '7 days' from {{ this }})
+    -- EC-06: lookback 7 days; coalesce handles first-run empty table (max=NULL)
+    where date >= coalesce(
+        (select max(date) - interval '7 days' from {{ this }}),
+        '2000-01-01'::date
+    )
     {% endif %}
 
 ),
@@ -31,12 +34,14 @@ enriched as (
         campaign_id,
         campaign_name,
         ad_set_id,
+        ad_set_name,
 
-        -- EC-10: extract office from campaign name tag
-        -- Pattern: PLATFORM_MARKET_OFFICE_YEARQ_OBJ → position 3
+        -- EC-10: extract office from ad_set_name position 1
+        -- Pattern: {OFFICE}_{AUDIENCE}_[...] → position 1
+        -- Valid: HCM, HN, DN, ALL, HCMTinh, HNTinh, DNTinh
         case
-            when split_part(campaign_name, '_', 3) in ('HCM', 'HN', 'DN')
-            then split_part(campaign_name, '_', 3)
+            when split_part(ad_set_name, '_', 1) in ('HCM', 'HN', 'DN', 'ALL', 'HCMTinh', 'HNTinh', 'DNTinh')
+            then split_part(ad_set_name, '_', 1)
             else 'UNKNOWN'
         end                                             as office,
 
@@ -61,7 +66,7 @@ enriched as (
         now()                                           as updated_at
 
     from spend
-    group by 1, 2, 3, 4, 5, 6
+    group by 1, 2, 3, 4, 5, 6, 7
 
 )
 

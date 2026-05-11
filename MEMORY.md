@@ -9,10 +9,10 @@
 ```
 Phase:        2 — Multi-Platform
 Current file:        MEMORY.md
-Last action:        Modified facebook_pipeline.py, test_extract.py
+Last action:        Modified facebook_pipeline.py, base_extractor.py
 Next action:        —
 Blocked on:        FB_ACCESS_TOKEN (cần từ Facebook Business Manager)
-Last session:        2026-03-18
+Last session:        2026-05-11
 ```
 
 ---
@@ -81,6 +81,264 @@ Last session:        2026-03-18
 ```
 
 ## Session Notes
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 9 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 9 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 9 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 9 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 9 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 9 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 7 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 6 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 6 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 3 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 3 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 3 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 3 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 3 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-05-11 — Auto-logged
+- Branch: main | Changed: 2 files
+
+### 2026-03-25 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-25 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-23 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 1 files
+
+### 2026-03-18 — Auto-logged
+- Branch: main | Changed: 0 files
 
 ### 2026-03-18 — Auto-logged
 - Branch: main | Changed: 20 files

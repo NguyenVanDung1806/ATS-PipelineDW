@@ -90,6 +90,13 @@ services:
           --password ${AIRFLOW_ADMIN_PASSWORD:-admin} \
           --firstname Admin --lastname User \
           --role Admin --email admin@de.local 2>/dev/null || true
+        airflow connections add postgres_ats \
+          --conn-type postgres \
+          --conn-host postgres \
+          --conn-port 5432 \
+          --conn-login ${POSTGRES_USER} \
+          --conn-password ${POSTGRES_PASSWORD} \
+          --conn-schema ${POSTGRES_DB} 2>/dev/null || true
     restart: on-failure
 
   airflow-webserver:

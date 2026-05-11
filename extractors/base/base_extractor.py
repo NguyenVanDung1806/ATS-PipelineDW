@@ -64,12 +64,20 @@ class BaseExtractor(ABC):
         """
         ...
 
-    def run(self) -> dict:
+    def run(
+        self,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> dict:
         """
         Orchestrate: extract → validate → upload MinIO → return metadata.
         Loading to staging is handled by the Airflow task after run().
+        Pass start_date/end_date to override the default 7-day lookback (e.g. backfill).
         """
-        start, end = self.get_date_range()
+        if start_date and end_date:
+            start, end = start_date, end_date
+        else:
+            start, end = self.get_date_range()
         logger.info(f"[{self.PLATFORM}] Extracting: {start} → {end}")
 
         raw = self.extract(start, end)

@@ -51,10 +51,16 @@ def task_extract(**context) -> dict:
     """
     Extract all FB Ads data → validate (Pydantic) → upload to MinIO.
     Returns metadata dict pushed to XCom.
+    Uses logical_date as end_date so Airflow backfill works correctly.
     """
+    from datetime import timedelta
     from extractors.facebook.extract import FacebookExtractor
+
+    end_date = context["logical_date"].date()
+    start_date = end_date - timedelta(days=7)  # EC-06: always lookback 7 days
+
     extractor = FacebookExtractor()
-    result = extractor.run()
+    result = extractor.run(start_date=start_date, end_date=end_date)
     context["task_instance"].xcom_push(key="extract_result", value=result)
     return result
 
