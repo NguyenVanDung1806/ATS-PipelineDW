@@ -24,7 +24,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install dbt-postgres
 
       - name: Check for secrets leak
         run: |
@@ -43,11 +42,12 @@ jobs:
           POSTGRES_DB: test
         run: |
           cd dbt
+          dbt deps --quiet
           dbt compile --target dev 2>&1 | grep -E "ERROR|WARNING|Completed" || true
 
       - name: Python tests
         run: |
-          python -m pytest tests/ -v --tb=short 2>&1 || true
+          python -m pytest extractors/facebook/test_extract.py -v --tb=short
 
   # ── CD: Deploy ───────────────────────────────────────────
   deploy:
@@ -75,6 +75,11 @@ jobs:
 
             echo "--- Restarting services ---"
             docker compose -f infra/docker-compose.yml up -d --force-recreate
+
+            echo "--- Installing dbt packages inside Airflow runtime ---"
+            sleep 10
+            docker exec --user root de_airflow_scheduler bash -lc "mkdir -p /opt/airflow/dbt/dbt_packages /tmp/dbt-logs && chmod -R a+rwX /opt/airflow/dbt/dbt_packages /tmp/dbt-logs"
+            docker exec de_airflow_scheduler bash -lc "cd /opt/airflow/dbt && dbt deps --log-path /tmp/dbt-logs"
 
             echo "--- Connect to Traefik network ---"
             docker network connect web de_metabase 2>/dev/null || true
