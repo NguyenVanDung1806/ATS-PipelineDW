@@ -1,0 +1,6 @@
+dbt-postgres==1.8.2
+facebook-business==20.0.3
+pydantic>=2.0
+tenacity
+boto3
+apache-airflow-providers-postgres
