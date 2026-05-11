@@ -193,12 +193,13 @@ with DAG(
         python_callable=task_load_staging,
     )
 
-    dbt_deps = BashOperator(
-        task_id="dbt_deps",
+    dbt_verify_packages = BashOperator(
+        task_id="dbt_verify_packages",
         bash_command=(
             "mkdir -p /tmp/dbt-logs && "
             "cd /opt/airflow/dbt && "
-            "dbt deps --log-path /tmp/dbt-logs"
+            "test -d dbt_packages/dbt_utils && "
+            "test -d dbt_packages/dbt_expectations"
         ),
     )
 
@@ -249,7 +250,7 @@ with DAG(
     (
         extract
         >> load_staging
-        >> dbt_deps
+        >> dbt_verify_packages
         >> dbt_run_staging
         >> dbt_test_staging
         >> dbt_run_marts
