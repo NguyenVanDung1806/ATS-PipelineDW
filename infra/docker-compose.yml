@@ -114,6 +114,7 @@ services:
       - web
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web"
       - "traefik.http.routers.airflow.rule=Host(`airflow.atsmarketingauto.com`)"
       - "traefik.http.routers.airflow.entrypoints=websecure"
       - "traefik.http.routers.airflow.tls.certresolver=letsencrypt"
@@ -148,6 +149,7 @@ services:
       - web
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web"
       - "traefik.http.routers.metabase.rule=Host(`metabase.atsmarketingauto.com`)"
       - "traefik.http.routers.metabase.entrypoints=websecure"
       - "traefik.http.routers.metabase.tls.certresolver=letsencrypt"
