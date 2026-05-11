@@ -74,7 +74,12 @@ jobs:
             docker compose -f infra/docker-compose.yml build
 
             echo "--- Restarting services ---"
-            docker compose -f infra/docker-compose.yml up -d
+            docker compose -f infra/docker-compose.yml up -d --force-recreate
+
+            echo "--- Connect to Traefik network ---"
+            docker network connect web de_metabase 2>/dev/null || true
+            docker network connect web de_airflow_web 2>/dev/null || true
+            docker restart traefik
 
             echo "--- Health check ---"
             sleep 10
