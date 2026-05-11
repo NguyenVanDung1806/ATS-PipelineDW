@@ -53,11 +53,16 @@ def task_extract(**context) -> dict:
     Returns metadata dict pushed to XCom.
     Uses logical_date as end_date so Airflow backfill works correctly.
     """
-    from datetime import timedelta
+    from datetime import timedelta, date as date_type
     from extractors.facebook.extract import FacebookExtractor
 
-    end_date = context["logical_date"].date()
-    start_date = end_date - timedelta(days=7)  # EC-06: always lookback 7 days
+    conf = context.get("dag_run").conf or {}
+    if conf.get("start_date") and conf.get("end_date"):
+        start_date = date_type.fromisoformat(conf["start_date"])
+        end_date = date_type.fromisoformat(conf["end_date"])
+    else:
+        end_date = context["logical_date"].date()
+        start_date = end_date - timedelta(days=7)  # EC-06: always lookback 7 days
 
     extractor = FacebookExtractor()
     result = extractor.run(start_date=start_date, end_date=end_date)
