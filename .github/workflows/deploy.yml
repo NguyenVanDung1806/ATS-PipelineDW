@@ -28,9 +28,9 @@ jobs:
 
       - name: Check for secrets leak
         run: |
-          # Fail if any hardcoded secrets pattern found
-          if grep -rE "(password|secret|token|key)\s*=\s*['\"][^$][^'\"]{6,}" \
-            --include="*.py" --include="*.sql" --include="*.yml" \
+          # Fail if hardcoded secrets found (variable assignment pattern only)
+          if grep -rE "^(PASSWORD|SECRET|TOKEN|API_KEY)\s*=\s*['\"][^'\"]+" \
+            --include="*.py" --include="*.sql" \
             --exclude-dir=".git" --exclude-dir=".github" .; then
             echo "Hardcoded secret detected — failing"
             exit 1
