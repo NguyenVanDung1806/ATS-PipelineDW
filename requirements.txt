@@ -1,3 +1,4 @@
+dbt-core==1.8.2
 dbt-postgres==1.8.2
 facebook-business==20.0.3
 pydantic>=2.0
