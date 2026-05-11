@@ -197,7 +197,7 @@ with DAG(
         task_id="dbt_run_staging",
         bash_command=(
             "cd /opt/airflow/dbt && "
-            "dbt run --select stg_facebook_ads --no-version-check --target prod"
+            "dbt run --profiles-dir /opt/airflow/dbt --select stg_facebook_ads --no-version-check --target prod"
         ),
     )
 
@@ -205,7 +205,7 @@ with DAG(
         task_id="dbt_test_staging",
         bash_command=(
             "cd /opt/airflow/dbt && "
-            "dbt test --select stg_facebook_ads --no-version-check --target prod"
+            "dbt test --profiles-dir /opt/airflow/dbt --select stg_facebook_ads --no-version-check --target prod"
         ),
     )
 
@@ -213,7 +213,7 @@ with DAG(
         task_id="dbt_run_marts",
         bash_command=(
             "cd /opt/airflow/dbt && "
-            "dbt run --select fct_ad_spend --no-version-check --target prod"
+            "dbt run --profiles-dir /opt/airflow/dbt --select fct_ad_spend --no-version-check --target prod"
         ),
     )
 
@@ -221,7 +221,7 @@ with DAG(
         task_id="dbt_test_marts",
         bash_command=(
             "cd /opt/airflow/dbt && "
-            "dbt test --select fct_ad_spend --no-version-check --target prod"
+            "dbt test --profiles-dir /opt/airflow/dbt --select fct_ad_spend --no-version-check --target prod"
         ),
     )
 
