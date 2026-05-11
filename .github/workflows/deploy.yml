@@ -11,6 +11,20 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +37,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Check for secrets leak
@@ -35,6 +50,15 @@ jobs:
             exit 1
           fi
 
+      - name: Python syntax check
+        run: |
+          python -m py_compile \
+            dags/facebook_pipeline.py \
+            extractors/base/base_extractor.py \
+            extractors/base/minio_client.py \
+            extractors/facebook/extract.py \
+            extractors/facebook/schema.py
+
       - name: dbt compile (validate SQL)
         env:
           POSTGRES_USER: test
@@ -43,7 +67,8 @@ jobs:
         run: |
           cd dbt
           dbt deps --quiet
-          dbt compile --target dev 2>&1 | grep -E "ERROR|WARNING|Completed" || true
+          dbt parse --target dev
+          dbt compile --target dev
 
       - name: Python tests
         run: |
@@ -76,9 +101,21 @@ jobs:
             echo "--- Restarting services ---"
             docker compose -f infra/docker-compose.yml up -d --force-recreate
 
+            echo "--- Waiting for Airflow scheduler ---"
+            for i in {1..30}; do
+              if [ "$(docker inspect -f '{{.State.Running}}' de_airflow_scheduler 2>/dev/null)" = "true" ]; then
+                break
+              fi
+              if [ "$i" = "30" ]; then
+                echo "Airflow scheduler did not start in time"
+                docker compose -f infra/docker-compose.yml ps
+                exit 1
+              fi
+              sleep 5
+            done
+
             echo "--- Installing dbt packages inside Airflow runtime ---"
-            sleep 10
-            docker exec --user root de_airflow_scheduler bash -lc "mkdir -p /opt/airflow/dbt/dbt_packages /tmp/dbt-logs && chmod -R a+rwX /opt/airflow/dbt/dbt_packages /tmp/dbt-logs"
+            docker exec --user root de_airflow_scheduler bash -lc "mkdir -p /opt/airflow/dbt/dbt_packages /tmp/dbt-logs && touch /opt/airflow/dbt/package-lock.yml && chmod a+rwX /opt/airflow/dbt /opt/airflow/dbt/dbt_packages /tmp/dbt-logs && chmod a+rw /opt/airflow/dbt/package-lock.yml"
             docker exec de_airflow_scheduler bash -lc "cd /opt/airflow/dbt && dbt deps --log-path /tmp/dbt-logs"
 
             echo "--- Connect to Traefik network ---"
