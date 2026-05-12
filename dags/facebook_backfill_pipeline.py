@@ -77,7 +77,7 @@ with DAG(
     dag_id="facebook_backfill_pipeline",
     default_args=backfill_args,
     description="Manual Facebook Ads historical backfill in controlled chunks",
-    schedule_interval=None,
+    schedule=None,
     start_date=datetime(2026, 3, 1),
     catchup=False,
     max_active_runs=1,

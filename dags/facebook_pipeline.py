@@ -189,7 +189,7 @@ with DAG(
     dag_id="facebook_pipeline",
     default_args=default_args,
     description="Facebook Ads → MinIO → Staging → dbt → DW",
-    schedule_interval=SCHEDULE,
+    schedule=SCHEDULE,
     start_date=datetime(2026, 3, 1),
     catchup=False,
     max_active_runs=1,
