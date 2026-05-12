@@ -47,8 +47,8 @@ FB_API_VERSION = "v19.0"
 FB_BASE_URL = f"https://graph.facebook.com/{FB_API_VERSION}"
 
 
-class FbRateLimitError(Exception):
-    """Raised when FB API returns rate limit response (EC-02)."""
+class FbRetryableError(Exception):
+    """Raised when FB API returns a transient/rate-limit response."""
 
 
 class FacebookExtractor(BaseExtractor):
@@ -129,7 +129,7 @@ class FacebookExtractor(BaseExtractor):
     # ── Private helpers ──────────────────────────────────────────────────────
 
     @retry(
-        retry=retry_if_exception_type(FbRateLimitError),
+        retry=retry_if_exception_type(FbRetryableError),
         wait=wait_exponential(multiplier=1, min=60, max=240),  # EC-02: 60→120→240s
         stop=stop_after_attempt(4),
         reraise=True,
@@ -139,21 +139,32 @@ class FacebookExtractor(BaseExtractor):
         Make GET request to FB API with retry on rate limit.
         EC-02: exponential backoff 60→120→240s on rate limit errors.
         """
-        response = requests.get(url, params=params, timeout=30)
+        try:
+            response = requests.get(url, params=params, timeout=30)
+        except requests.exceptions.RequestException as exc:
+            logger.warning("[facebook] Network/API request failed — will retry: %s", exc)
+            raise FbRetryableError(str(exc)) from exc
 
-        # Check for rate limit (HTTP 429 or FB error code 17/32/613)
-        if response.status_code == 429:
-            logger.warning("[facebook] Rate limit hit (HTTP 429) — will retry")
-            raise FbRateLimitError("HTTP 429 rate limit")
+        # Check for transient HTTP failures and rate limits.
+        if response.status_code == 429 or response.status_code >= 500:
+            logger.warning(
+                "[facebook] Retryable HTTP error %s — will retry",
+                response.status_code,
+            )
+            raise FbRetryableError(f"HTTP {response.status_code}")
 
         if response.status_code != 200:
             error_body = response.json().get("error", {})
             error_code = error_body.get("code", 0)
-            if error_code in (17, 32, 613):
+            # 2 = temporary service unavailable / unknown transient API error.
+            # 17/32/613 = rate limit / throttling variants.
+            if error_code in (2, 17, 32, 613):
                 logger.warning(
-                    f"[facebook] Rate limit hit (code {error_code}) — will retry"
+                    "[facebook] Retryable FB error code %s — will retry: %s",
+                    error_code,
+                    error_body.get("message", response.text[:200]),
                 )
-                raise FbRateLimitError(f"FB error code {error_code}")
+                raise FbRetryableError(f"FB error code {error_code}")
 
             raise RuntimeError(
                 f"[facebook] API error {response.status_code}: {response.text[:300]}"
