@@ -47,22 +47,35 @@ def slack_alert_failure(context: dict) -> None:
 
 # ── Tasks ─────────────────────────────────────────────────────────────────────
 
-def task_extract(**context) -> dict:
+def task_extract_daily(**context) -> dict:
     """
-    Extract all FB Ads data → validate (Pydantic) → upload to MinIO.
-    Returns metadata dict pushed to XCom.
-    Uses logical_date as end_date so Airflow backfill works correctly.
+    Extract the daily 7-day lookback window.
+    Daily pipeline ignores dag_run.conf date overrides; use
+    facebook_backfill_pipeline for historical ranges.
     """
-    from datetime import timedelta, date as date_type
+    from datetime import timedelta
+    from extractors.facebook.extract import FacebookExtractor
+
+    end_date = context["logical_date"].date()
+    start_date = end_date - timedelta(days=7)  # EC-06: always lookback 7 days
+
+    extractor = FacebookExtractor()
+    result = extractor.run(start_date=start_date, end_date=end_date)
+    context["task_instance"].xcom_push(key="extract_result", value=result)
+    return result
+
+
+def task_extract_backfill(**context) -> dict:
+    """
+    Extract an explicit historical date range from dag_run.conf.
+    Used only by facebook_backfill_pipeline.
+    """
+    from datetime import date as date_type
     from extractors.facebook.extract import FacebookExtractor
 
     conf = context.get("dag_run").conf or {}
-    if conf.get("start_date") and conf.get("end_date"):
-        start_date = date_type.fromisoformat(conf["start_date"])
-        end_date = date_type.fromisoformat(conf["end_date"])
-    else:
-        end_date = context["logical_date"].date()
-        start_date = end_date - timedelta(days=7)  # EC-06: always lookback 7 days
+    start_date = date_type.fromisoformat(conf["start_date"])
+    end_date = date_type.fromisoformat(conf["end_date"])
 
     extractor = FacebookExtractor()
     result = extractor.run(start_date=start_date, end_date=end_date)
@@ -185,7 +198,7 @@ with DAG(
 
     extract = PythonOperator(
         task_id="extract",
-        python_callable=task_extract,
+        python_callable=task_extract_daily,
     )
 
     load_staging = PythonOperator(
