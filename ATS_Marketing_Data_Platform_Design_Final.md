@@ -2,13 +2,17 @@
 
 ## Project Design Document - Final Draft
 
-**Company:** ATS - Avenue to Success  
-**Version:** Final Draft v1.1  
-**Date:** 2026-05-20  
-**Status:** Architecture approved for implementation planning  
+**Company:** ATS - Avenue to Success
+**Version:** Final Draft v1.2
+**Date:** 2026-05-25
+**Status:** Architecture approved for implementation planning
 **Scope:** Facebook Ads, Airtable CRM, Agency reports, future Google/TikTok/Zalo expansion
 
 This document replaces the earlier `ATS_Marketing_Pipeline_Design_v1.0.docx` as the practical architecture direction for the current project state. The previous document remains valuable as the original production design reference, especially for ELT principles, observability, idempotency, and edge cases. This final draft updates the design based on the actual ATS operating model, current Facebook pipeline, Airtable lead retainer, Agency reconciliation needs, and future multi-platform requirements.
+
+Business context:
+
+ATS spends roughly VND 4 billion per year on paid advertising, runs many campaigns, and executes media through an agency. Campaign platform choice depends on campaign goals and audience needs. Therefore, this platform is not only a reporting project; it is also a spend governance, agency accountability, and lead quality management system.
 
 ---
 
@@ -45,7 +49,9 @@ Can the model scale to Google, TikTok, Zalo, and CRM quality?
 The platform must support three levels of decision making:
 
 1. **Executive view**
+
    - Total spend
+   - Budget pacing
    - Total leads
    - Valid leads
    - Event attendance
@@ -53,14 +59,17 @@ The platform must support three levels of decision making:
    - Platform efficiency
 
 2. **Marketing manager view**
+
    - Campaign performance
    - CPL by platform/campaign/office
    - Lead quality by source
    - Spend efficiency
+   - Budget vs actual spend
    - Underperforming campaigns
    - Agency/platform discrepancy
 
 3. **Operations and data view**
+
    - Pipeline health
    - Missing mappings
    - Duplicate leads
@@ -89,17 +98,18 @@ This means the platform cannot stop at `platform_leads`. Platform-reported leads
 
 ## 1.4 Scope
 
-| Area | In Scope V1 | Later Phase |
-| --- | --- | --- |
-| Ad platforms | Facebook Ads | Google Ads, TikTok Ads, Zalo Ads |
-| CRM | Airtable lead retainer current state | Airtable history/snapshots, counselor touchpoints |
-| Agency report | Facebook Ads Manager export | Automated Google Sheet ingestion |
-| Data warehouse | PostgreSQL | Same unless scale demands change |
-| Transform | dbt Core | Same |
-| Orchestration | Airflow | Same |
-| Dashboard | Metabase | Same |
-| Attribution | Name-based mapping with canonical identity | ID/UTM-based attribution when tracking improves |
-| Reconciliation | Facebook vs Agency vs Airtable | Multi-platform reconciliation |
+| Area           | In Scope V1                                | Later Phase                                       |
+| -------------- | ------------------------------------------ | ------------------------------------------------- |
+| Ad platforms   | Facebook Ads                               | Google Ads, TikTok Ads, Zalo Ads                  |
+| CRM            | Airtable lead retainer current state       | Airtable history/snapshots, counselor touchpoints |
+| Agency report  | Facebook Ads Manager export                | Automated Google Sheet ingestion                  |
+| Budget planning | Campaign/platform/office budget tracking  | Automated approval workflow                       |
+| Data warehouse | PostgreSQL                                 | Same unless scale demands change                  |
+| Transform      | dbt Core                                   | Same                                              |
+| Orchestration  | Airflow                                    | Same                                              |
+| Dashboard      | Metabase                                   | Same                                              |
+| Attribution    | Name-based mapping with canonical identity | ID/UTM-based attribution when tracking improves   |
+| Reconciliation | Facebook vs Agency vs Airtable             | Multi-platform reconciliation                     |
 
 ---
 
@@ -188,6 +198,7 @@ Current limitations:
 | raw.zalo_ads                                          |
 | raw.airtable_leads                                    |
 | raw.agency_facebook_report                            |
+| raw.campaign_budget_plan                              |
 +------------------------------------------------------+
                            |
                            v
@@ -199,17 +210,20 @@ Current limitations:
 | stg_zalo_ads                                          |
 | stg_airtable_leads                                    |
 | stg_agency_facebook_report                            |
+| stg_campaign_budget_plan                              |
 +------------------------------------------------------+
                            |
                            v
 +------------------------------------------------------+
 | Identity and Mapping Layer                            |
 | map_marketing_entity_identity                         |
+| dim_campaign_master                                   |
 | dim_campaign                                          |
 | dim_ad_set                                            |
 | dim_ad                                                |
 | dim_office                                            |
 | dim_platform                                          |
+| dim_agency                                            |
 | dim_date                                              |
 +------------------------------------------------------+
                            |
@@ -228,6 +242,7 @@ Current limitations:
 | fct_crm_leads_current                                 |
 | fct_marketing_performance_daily                       |
 | fct_lead_reconciliation_daily                         |
+| fct_campaign_budget_monthly                           |
 | fct_data_quality_daily                                |
 +------------------------------------------------------+
                            |
@@ -246,16 +261,19 @@ Current limitations:
 
 This architecture separates concerns clearly:
 
-| Layer | Responsibility | Why It Exists |
-| --- | --- | --- |
-| Raw | Store source data close to original | Allows audit and reprocessing |
-| Staging | Rename, cast, normalize basic types | Keeps source cleaning simple and testable |
-| Mapping | Resolve identity across systems | Prevents wrong joins from formatted names |
-| Intermediate | Normalize platform-specific metrics | Allows Facebook, Google, TikTok, Zalo to share one mart |
-| Mart | Business-ready facts | Powers dashboards and decisions |
-| Reconciliation | Explain mismatches | Converts disputes into traceable data checks |
+| Layer          | Responsibility                      | Why It Exists                                           |
+| -------------- | ----------------------------------- | ------------------------------------------------------- |
+| Raw            | Store source data close to original | Allows audit and reprocessing                           |
+| Staging        | Rename, cast, normalize basic types | Keeps source cleaning simple and testable               |
+| Mapping        | Resolve identity across systems     | Prevents wrong joins from formatted names               |
+| Intermediate   | Normalize platform-specific metrics | Allows Facebook, Google, TikTok, Zalo to share one mart |
+| Mart           | Business-ready facts                | Powers dashboards and decisions                         |
+| Budget         | Planned vs actual spend             | Controls VND 4B/year media investment                   |
+| Reconciliation | Explain mismatches                  | Converts disputes into traceable data checks            |
 
 The most important design choice is the mapping layer. Airtable currently does not store `campaign_id`, `adset_id`, `ad_id`, `fbclid`, `gclid`, or UTM fields. Campaign/ad names can be formatted before entering ATS reporting. Therefore, direct joins by campaign name are unsafe.
+
+The second major design choice is treating budget as first-class data. With a roughly VND 4B/year ad budget, the warehouse must not only report what was spent; it must also compare actual spend against planned budget by month, campaign, platform, and office.
 
 ---
 
@@ -321,6 +339,8 @@ Business leads:
 ```text
 Airtable CRM record
 Valid lead
+Workable lead
+High-intent lead
 Qualified lead
 Event confirmed lead
 Event attended lead
@@ -330,7 +350,18 @@ Enrollment
 
 Reason:
 
-Facebook optimizes campaign delivery, but Airtable represents ATS operational truth. Marketing should eventually optimize for valid/qualified/event-attended leads, not only platform-reported leads.
+Facebook optimizes campaign delivery, but Airtable represents ATS operational truth. Marketing should eventually optimize for valid, workable, high-intent, and event-attended leads, not only platform-reported leads.
+
+Important V1 distinction:
+
+```text
+valid_leads        = leads that are real enough to keep in the business funnel
+workable_leads     = leads ATS can continue working on
+high_intent_leads  = leads with strongest immediate fit/intent
+qualified_leads    = reserved for a stricter future definition once ATS confirms it
+```
+
+`Qualified lead` is often overloaded across marketing, telesales, and counselors. V1 should not make it the primary KPI until the business definition is stable.
 
 ## 3.4 Keep Invalid Data, But Do Not Count It As Valid
 
@@ -349,6 +380,8 @@ They should be excluded from:
 
 ```text
 valid_leads
+workable_leads
+high_intent_leads
 qualified_leads
 cpl_valid denominator
 ```
@@ -379,17 +412,128 @@ Reason:
 
 Current-state reporting gives business value quickly. History can be added once the base CRM model is reliable.
 
+## 3.6 Campaign Master Is The Business Identity
+
+Canonical mapping should not depend only on normalized names.
+
+Preferred design:
+
+```text
+dim_campaign_master
+  -> canonical_campaign_key
+  -> canonical_campaign_name
+  -> business metadata
+
+map_marketing_entity_identity
+  -> maps Facebook/Airtable/Agency source records into campaign master
+```
+
+Recommended stable key style:
+
+```text
+canonical_campaign_key = ats_campaign_2026_0001
+```
+
+Reason:
+
+Names can change. A durable business key should remain stable even if ATS renames a campaign for reporting, Agency export, or internal communication.
+
+## 3.7 Attribution Settings Must Be Explicit
+
+Facebook and Agency numbers can differ even when both are technically correct if attribution settings differ.
+
+For Facebook reconciliation, the extractor should explicitly configure and store:
+
+```text
+action_attribution_windows
+action_report_time
+report_timezone
+```
+
+Known Agency setting:
+
+```text
+Facebook Ads Manager
+1-day click
+```
+
+Reason:
+
+If ATS compares API data using one attribution window with Agency exports using another, reconciliation will produce false discrepancies.
+
+## 3.8 Tracking IDs Are The Long-Term Fix
+
+V1 must support name-based mapping because Airtable currently does not store platform IDs or UTM fields.
+
+V2 should improve tracking so new leads carry:
+
+```text
+campaign_id
+adset_id
+ad_id
+utm_source
+utm_medium
+utm_campaign
+utm_content
+utm_term
+fbclid
+gclid
+```
+
+Reason:
+
+Manual mapping is a necessary bridge, not the ideal long-term state. The platform should reduce dependence on human-approved name matching over time.
+
+## 3.9 Budget Is A First-Class Business Fact
+
+Because ATS spends roughly VND 4 billion per year on paid ads, planned budget should be modeled, not kept only in spreadsheets or agency conversations.
+
+The platform should support:
+
+```text
+planned_budget
+actual_spend
+remaining_budget
+budget_spent_pct
+expected_spend_pct
+pacing_status
+```
+
+Reason:
+
+Marketing managers do not only need to know which campaign generated leads. They also need to know whether spend is on pace, over pace, under pace, or being allocated to the wrong platform/campaign based on valid lead quality.
+
+## 3.10 Agency Reports Are Control Data, Not Truth By Default
+
+Agency reports are important, but they should be treated as a reconciliation/control source, not automatically as the warehouse source of truth.
+
+Recommended source-of-truth matrix:
+
+| Data Area | Source Of Truth | Notes |
+| --- | --- | --- |
+| Actual ad spend | Platform API | Agency report used for reconciliation |
+| Platform-reported leads | Platform API | Must align attribution settings |
+| Agency-reported leads | Agency export | Control/check source |
+| CRM leads | Airtable | ATS operational truth |
+| Lead quality | Airtable `Quality` | Telesales/counselor-owned |
+| Campaign business identity | `dim_campaign_master` | ATS-owned |
+| Planned budget | ATS budget plan | Can be maintained in sheet first |
+
+Reason:
+
+This avoids the common failure mode where the agency export, platform API, and CRM each become competing "truths" without a clear decision rule.
+
 ---
 
 # 4. Data Model
 
 ## 4.1 Schemas
 
-| Schema | Purpose | Example Tables |
-| --- | --- | --- |
-| `raw` | Source-aligned data, staging buffers, raw payload columns | `facebook_ads`, `airtable_leads`, `agency_facebook_report` |
-| `dw` | Data warehouse facts, dims, marts | `fct_paid_ads_daily`, `fct_crm_leads_current`, `dim_campaign` |
-| `meta` | Observability and operational logs | `pipeline_runs`, `data_quality_log`, `schema_versions` |
+| Schema | Purpose                                                   | Example Tables                                                |
+| ------ | --------------------------------------------------------- | ------------------------------------------------------------- |
+| `raw`  | Source-aligned data, staging buffers, raw payload columns | `facebook_ads`, `airtable_leads`, `agency_facebook_report`    |
+| `dw`   | Data warehouse facts, dims, marts                         | `fct_paid_ads_daily`, `fct_crm_leads_current`, `dim_campaign` |
+| `meta` | Observability and operational logs                        | `pipeline_runs`, `data_quality_log`, `schema_versions`        |
 
 The existing project already uses `raw`, `dw`, and `meta`. The final architecture keeps this structure.
 
@@ -409,6 +553,11 @@ raw.airtable_leads -> stg_airtable_leads -> fct_crm_leads_current
                                                            ^
                                                            |
 raw.agency_report -> stg_agency_report -> fct_lead_reconciliation_daily
+
+raw.campaign_budget_plan -> stg_campaign_budget_plan -> fct_campaign_budget_monthly
+                                                           |
+                                                           v
+                                               fct_marketing_performance_daily
 
 map_marketing_entity_identity links:
   platform raw names / IDs
@@ -433,26 +582,26 @@ date + account_id + campaign_id + ad_set_id + ad_id
 
 Recommended columns:
 
-| Column | Type | Description |
-| --- | --- | --- |
-| `account_id` | text | Facebook ad account ID |
-| `campaign_id` | text | Facebook campaign ID |
-| `campaign_name` | text | Raw Facebook campaign name |
-| `ad_set_id` | text | Facebook ad set ID |
-| `ad_set_name` | text | Raw Facebook ad set name |
-| `ad_id` | text | Facebook ad ID |
-| `ad_name` | text | Raw Facebook ad name |
-| `date` | date | Facebook reporting date |
-| `spend` | numeric | Spend |
-| `impressions` | bigint | Impressions |
-| `reach` | bigint | Reach |
-| `clicks` | bigint | All clicks |
-| `link_clicks` | bigint | Link clicks / inline link clicks |
-| `actions_json` | jsonb | Raw Facebook actions array |
-| `website_leads` | int | Leads from website/pixel-related actions |
-| `native_form_leads` | int | Leads from Facebook native lead forms |
-| `platform_leads` | int | Website + native form leads |
-| `loaded_at` | timestamptz | Warehouse load time |
+| Column              | Type        | Description                              |
+| ------------------- | ----------- | ---------------------------------------- |
+| `account_id`        | text        | Facebook ad account ID                   |
+| `campaign_id`       | text        | Facebook campaign ID                     |
+| `campaign_name`     | text        | Raw Facebook campaign name               |
+| `ad_set_id`         | text        | Facebook ad set ID                       |
+| `ad_set_name`       | text        | Raw Facebook ad set name                 |
+| `ad_id`             | text        | Facebook ad ID                           |
+| `ad_name`           | text        | Raw Facebook ad name                     |
+| `date`              | date        | Facebook reporting date                  |
+| `spend`             | numeric     | Spend                                    |
+| `impressions`       | bigint      | Impressions                              |
+| `reach`             | bigint      | Reach                                    |
+| `clicks`            | bigint      | All clicks                               |
+| `link_clicks`       | bigint      | Link clicks / inline link clicks         |
+| `actions_json`      | jsonb       | Raw Facebook actions array               |
+| `website_leads`     | int         | Leads from website/pixel-related actions |
+| `native_form_leads` | int         | Leads from Facebook native lead forms    |
+| `platform_leads`    | int         | Website + native form leads              |
+| `loaded_at`         | timestamptz | Warehouse load time                      |
 
 Why this design:
 
@@ -509,35 +658,35 @@ record_id
 
 Recommended columns:
 
-| Column | Description |
-| --- | --- |
-| `record_id` | Airtable record ID, primary natural key |
-| `campaign` | Raw/formatted campaign field from Airtable |
-| `attend_event` | Actual event attendance/check-in |
-| `family_name` | PII |
-| `given_name` | PII |
-| `phone` | PII |
-| `email` | PII |
-| `counselors` | Assigned counselor |
-| `moved_to_counselor_report` | Telesales-to-counselor stage flag |
-| `note_by_telesales` | Telesales note |
-| `last_update_l` | Manual counselor update field |
-| `ad_name` | Raw/formatted ad name |
-| `ad_set_name` | Raw/formatted ad set name |
-| `ads_platform` | Filled by ATS |
-| `counselors_follow_up_note` | Counselor follow-up notes |
-| `source_of_leads` | Lead source |
-| `office_location` | Office |
-| `time_to_study_abroad` | Study abroad timeline |
-| `role` | Student/parent/other role |
-| `quality` | Telesales quality result |
-| `checked_phone_no_already` | Phone check flag |
-| `tracking_date` | Date lead entered Airtable/system |
-| `rating_by_counselors` | Counselor rating |
-| `event_location` | Event location |
-| `confirmation_to_attend_event` | Confirmed event intent |
-| `raw_payload_json` | Full raw Airtable record |
-| `loaded_at` | Load time |
+| Column                         | Description                                |
+| ------------------------------ | ------------------------------------------ |
+| `record_id`                    | Airtable record ID, primary natural key    |
+| `campaign`                     | Raw/formatted campaign field from Airtable |
+| `attend_event`                 | Actual event attendance/check-in           |
+| `family_name`                  | PII                                        |
+| `given_name`                   | PII                                        |
+| `phone`                        | PII                                        |
+| `email`                        | PII                                        |
+| `counselors`                   | Assigned counselor                         |
+| `moved_to_counselor_report`    | Telesales-to-counselor stage flag          |
+| `note_by_telesales`            | Telesales note                             |
+| `last_update_l`                | Manual counselor update field              |
+| `ad_name`                      | Raw/formatted ad name                      |
+| `ad_set_name`                  | Raw/formatted ad set name                  |
+| `ads_platform`                 | Filled by ATS                              |
+| `counselors_follow_up_note`    | Counselor follow-up notes                  |
+| `source_of_leads`              | Lead source                                |
+| `office_location`              | Office                                     |
+| `time_to_study_abroad`         | Study abroad timeline                      |
+| `role`                         | Student/parent/other role                  |
+| `quality`                      | Telesales quality result                   |
+| `checked_phone_no_already`     | Phone check flag                           |
+| `tracking_date`                | Date lead entered Airtable/system          |
+| `rating_by_counselors`         | Counselor rating                           |
+| `event_location`               | Event location                             |
+| `confirmation_to_attend_event` | Confirmed event intent                     |
+| `raw_payload_json`             | Full raw Airtable record                   |
+| `loaded_at`                    | Load time                                  |
 
 Why this design:
 
@@ -575,6 +724,8 @@ normalized_ad_set_name
 normalized_ad_name
 quality_normalized
 is_valid_lead
+is_workable_lead
+is_high_intent_lead
 is_qualified_lead
 is_invalid
 is_wrong_number
@@ -654,30 +805,30 @@ Map source-specific names and IDs into canonical ATS business entities.
 
 Recommended columns:
 
-| Column | Description |
-| --- | --- |
-| `entity_type` | `campaign`, `ad_set`, `ad` |
-| `source_system` | `facebook`, `airtable`, `agency`, `google`, `tiktok`, `zalo` |
-| `source_platform` | Ad platform |
-| `source_account_id` | Platform account ID if available |
-| `source_campaign_id` | Source campaign ID if available |
-| `source_ad_set_id` | Source ad set ID if available |
-| `source_ad_id` | Source ad ID if available |
-| `source_campaign_name` | Raw source campaign name |
-| `source_ad_set_name` | Raw source ad set name |
-| `source_ad_name` | Raw source ad name |
-| `normalized_source_key` | Text-normalized matching helper |
-| `canonical_campaign_key` | Approved campaign identity |
-| `canonical_campaign_name` | Business campaign display name |
-| `canonical_ad_set_key` | Approved ad set identity |
-| `canonical_ad_set_name` | Business ad set display name |
-| `canonical_ad_key` | Approved ad identity |
-| `canonical_ad_name` | Business ad display name |
-| `mapping_status` | `suggested`, `approved`, `rejected`, `unmapped` |
-| `mapping_confidence` | Numeric confidence for suggested match |
-| `mapped_by` | Person/system approving mapping |
-| `mapped_at` | Approval timestamp |
-| `notes` | Manual notes |
+| Column                    | Description                                                  |
+| ------------------------- | ------------------------------------------------------------ |
+| `entity_type`             | `campaign`, `ad_set`, `ad`                                   |
+| `source_system`           | `facebook`, `airtable`, `agency`, `google`, `tiktok`, `zalo` |
+| `source_platform`         | Ad platform                                                  |
+| `source_account_id`       | Platform account ID if available                             |
+| `source_campaign_id`      | Source campaign ID if available                              |
+| `source_ad_set_id`        | Source ad set ID if available                                |
+| `source_ad_id`            | Source ad ID if available                                    |
+| `source_campaign_name`    | Raw source campaign name                                     |
+| `source_ad_set_name`      | Raw source ad set name                                       |
+| `source_ad_name`          | Raw source ad name                                           |
+| `normalized_source_key`   | Text-normalized matching helper                              |
+| `canonical_campaign_key`  | Approved campaign identity                                   |
+| `canonical_campaign_name` | Business campaign display name                               |
+| `canonical_ad_set_key`    | Approved ad set identity                                     |
+| `canonical_ad_set_name`   | Business ad set display name                                 |
+| `canonical_ad_key`        | Approved ad identity                                         |
+| `canonical_ad_name`       | Business ad display name                                     |
+| `mapping_status`          | `suggested`, `approved`, `rejected`, `unmapped`              |
+| `mapping_confidence`      | Numeric confidence for suggested match                       |
+| `mapped_by`               | Person/system approving mapping                              |
+| `mapped_at`               | Approval timestamp                                           |
+| `notes`                   | Manual notes                                                 |
 
 Why this design:
 
@@ -694,7 +845,47 @@ Unmapped rows appear in data quality dashboards.
 No silent joins by raw name.
 ```
 
-## 4.9 Dimensions
+## 4.9 Campaign Master
+
+Table:
+
+```text
+dw.dim_campaign_master
+```
+
+Purpose:
+
+Define ATS-owned business campaign identities independently from platform, Agency, or Airtable names.
+
+Recommended columns:
+
+| Column                    | Description                                                   |
+| ------------------------- | ------------------------------------------------------------- |
+| `canonical_campaign_key`  | Stable ATS campaign key, for example `ats_campaign_2026_0001` |
+| `canonical_campaign_name` | Business display name                                         |
+| `campaign_group`          | Grouping for related campaigns                                |
+| `school_or_market`        | Market/program/school focus                                   |
+| `year_quarter`            | Campaign period                                               |
+| `objective`               | Lead, Mix, Traffic, Conv, View, etc.                          |
+| `office_scope`            | HCM, HN, DN, ALL, etc.                                        |
+| `platform_strategy`       | Planned platform mix, for example Facebook-only or FB+Google  |
+| `primary_platform`        | Main planned platform if one exists                           |
+| `event_key`               | Optional event/program reference                              |
+| `owner`                   | Business owner                                                |
+| `start_date`              | Planned start date                                            |
+| `end_date`                | Planned end date                                              |
+| `is_active`               | Active flag                                                   |
+| `created_at`              | Creation time                                                 |
+| `updated_at`              | Update time                                                   |
+
+Why this design:
+
+- It makes ATS the owner of campaign identity.
+- Mapping tables can change without changing the campaign's canonical key.
+- Business dashboards use stable campaign keys even when names are edited.
+- Future Google/TikTok/Zalo campaigns can map into the same business campaign master.
+
+## 4.10 Dimensions
 
 ### `dim_platform`
 
@@ -710,11 +901,28 @@ Reason:
 
 Supports Facebook, Google, TikTok, Zalo, organic, and future sources.
 
+### `dim_agency`
+
+```text
+agency_key
+agency_name
+contract_start_date
+contract_end_date
+is_active
+primary_contact
+notes
+```
+
+Reason:
+
+ATS currently runs paid media through an agency. Modeling agency identity helps separate platform performance from agency execution/reporting accountability, especially if ATS changes agency or uses different partners by platform in the future.
+
 ### `dim_campaign`
 
 ```text
 canonical_campaign_key
 canonical_campaign_name
+campaign_master_key
 platform
 school_or_market
 year_quarter
@@ -730,7 +938,7 @@ updated_at
 
 Reason:
 
-Separates business campaign identity from source names.
+Represents campaign identity used in analytics. This can be derived from `dim_campaign_master` plus approved platform/source mappings.
 
 ### `dim_ad_set`
 
@@ -795,7 +1003,7 @@ Reason:
 
 Improves dashboard consistency and time grouping.
 
-## 4.10 Fact: Paid Ads Daily
+## 4.11 Fact: Paid Ads Daily
 
 Table:
 
@@ -834,6 +1042,9 @@ link_clicks
 website_leads
 native_form_leads
 platform_leads
+action_attribution_windows
+action_report_time
+report_timezone
 updated_at
 ```
 
@@ -850,7 +1061,7 @@ Why not replace old `fct_ad_spend` immediately:
 - A migration should be additive.
 - The old table can remain as a compatibility/reporting layer until dashboards move to the new fact.
 
-## 4.11 Fact: CRM Leads Current
+## 4.12 Fact: CRM Leads Current
 
 Table:
 
@@ -884,6 +1095,8 @@ mapping_status
 quality
 rating_by_counselors
 is_valid_lead
+is_workable_lead
+is_high_intent_lead
 is_qualified_lead
 is_wrong_number
 is_invalid
@@ -903,13 +1116,25 @@ loaded_at
 
 Quality mapping V1:
 
-| Quality | `is_valid_lead` | `is_qualified_lead` | Business Interpretation |
-| --- | --- | --- | --- |
-| `Valid` | true | true | Strong lead |
-| `Valid but No` | true | false | Real/valid person, currently negative or not ready |
-| `Keep following` | true | false | Has interest, but not ideal market/timing |
-| `Invalid` | false | false | Not valid |
-| `Wrong number` | false | false | Invalid contact |
+| Quality          | `is_valid_lead` | `is_workable_lead` | `is_high_intent_lead` | `is_qualified_lead`       | Business Interpretation                            |
+| ---------------- | --------------- | ------------------ | --------------------- | ------------------------- | -------------------------------------------------- |
+| `Valid`          | true            | true               | true                  | null / pending definition | Strong immediate lead                              |
+| `Valid but No`   | true            | false              | false                 | null / pending definition | Real/valid person, currently negative or not ready |
+| `Keep following` | true            | true               | false                 | null / pending definition | Has interest, but not ideal market/timing          |
+| `Invalid`        | false           | false              | false                 | false                     | Not valid                                          |
+| `Wrong number`   | false           | false              | false                 | false                     | Invalid contact                                    |
+
+Production note:
+
+`qualified_leads` should not become the primary V1 KPI until ATS defines whether it is owned by telesales, counselor, event intent, or a rating threshold. For V1 dashboards, prefer:
+
+```text
+valid_leads
+workable_leads
+high_intent_leads
+event_confirmed_leads
+event_attended_leads
+```
 
 Why this design:
 
@@ -920,15 +1145,15 @@ Why this design:
 - Canonical keys enable campaign reporting after mapping.
 - Invalid leads are retained as quality signals.
 
-## 4.12 Duplicate Logic
+## 4.13 Duplicate Logic
 
 ATS needs multiple duplicate definitions, not one:
 
-| Duplicate Type | Definition | Usage |
-| --- | --- | --- |
-| `duplicate_person` | Same phone/email across all records | Unique people reporting |
-| `duplicate_campaign` | Same phone/email within same campaign | Campaign quality and CPL |
-| `duplicate_event` | Same phone/email for same event | Event registration quality |
+| Duplicate Type       | Definition                            | Usage                      |
+| -------------------- | ------------------------------------- | -------------------------- |
+| `duplicate_person`   | Same phone/email across all records   | Unique people reporting    |
+| `duplicate_campaign` | Same phone/email within same campaign | Campaign quality and CPL   |
+| `duplicate_event`    | Same phone/email for same event       | Event registration quality |
 
 Known business rule:
 
@@ -953,7 +1178,7 @@ Reason:
 
 One duplicate flag cannot support both marketing attribution and CRM operations.
 
-## 4.13 Fact: Marketing Performance Daily
+## 4.14 Fact: Marketing Performance Daily
 
 Table:
 
@@ -976,6 +1201,10 @@ canonical_campaign_key
 canonical_campaign_name
 office
 spend
+planned_budget
+remaining_budget
+budget_spent_pct
+pacing_status
 impressions
 reach
 clicks
@@ -985,6 +1214,8 @@ crm_leads
 lead_submissions
 unique_people
 valid_leads
+workable_leads
+high_intent_leads
 qualified_leads
 event_confirmed_leads
 event_attended_leads
@@ -994,7 +1225,11 @@ duplicate_leads
 cpl_platform
 cpl_crm
 cpl_valid
+cpl_workable
+cpl_high_intent
 lead_to_valid_rate
+lead_to_workable_rate
+lead_to_high_intent_rate
 lead_to_event_confirm_rate
 lead_to_event_attend_rate
 updated_at
@@ -1018,7 +1253,18 @@ ad_reporting_date
 crm_tracking_date
 ```
 
-## 4.14 Fact: Lead Reconciliation Daily
+Budget caveat:
+
+Budget is usually planned monthly, while performance is reported daily. Daily marketing performance should therefore calculate month-to-date actual spend against monthly planned budget:
+
+```text
+actual_spend_mtd
+planned_budget_month
+budget_spent_pct = actual_spend_mtd / planned_budget_month
+expected_spend_pct = days_elapsed_in_month / total_days_in_month
+```
+
+## 4.15 Fact: Lead Reconciliation Daily
 
 Table:
 
@@ -1052,6 +1298,8 @@ agency_native_form_leads
 agency_total_leads
 crm_leads
 valid_leads
+workable_leads
+high_intent_leads
 platform_vs_agency_diff
 platform_vs_crm_diff
 agency_vs_crm_diff
@@ -1081,6 +1329,122 @@ This table exists for dispute resolution and debugging. It answers:
 - Which campaign/ad is wrong?
 - Is the issue platform data, agency export, CRM ingestion, or mapping?
 
+## 4.16 Metric Definition Registry
+
+Table or maintained document:
+
+```text
+dw.dim_metric_definition
+```
+
+V1 can start as a Markdown data dictionary. Later it can become a dbt seed or warehouse table.
+
+Recommended columns:
+
+```text
+metric_name
+business_definition
+formula
+source_system
+source_table
+source_column
+grain
+owner
+used_in_dashboard
+notes
+updated_at
+```
+
+Examples:
+
+| Metric              | Definition                                    | Formula                               |
+| ------------------- | --------------------------------------------- | ------------------------------------- |
+| `platform_leads`    | Leads/conversions reported by ad platforms    | website_leads + native_form_leads     |
+| `crm_leads`         | Airtable records in lead retainer             | count(record_id)                      |
+| `valid_leads`       | Leads with Quality in valid business statuses | Valid + Valid but No + Keep following |
+| `workable_leads`    | Leads ATS can continue working                | Valid + Keep following                |
+| `high_intent_leads` | Strong immediate leads                        | Valid                                 |
+| `cpl_valid`         | Cost per valid lead                           | spend / valid_leads                   |
+
+Why this design:
+
+Metric definitions are where marketing data platforms often drift. A registry prevents different teams from using the same word with different meanings.
+
+## 4.17 Fact: Campaign Budget Monthly
+
+Table:
+
+```text
+dw.fct_campaign_budget_monthly
+```
+
+Purpose:
+
+Store planned advertising budget by month, campaign, platform, office, and agency where available.
+
+Suggested grain:
+
+```text
+month + canonical_campaign_key + platform + office
+```
+
+Recommended columns:
+
+```text
+month
+canonical_campaign_key
+platform
+office
+agency_key
+planned_budget
+approved_budget
+budget_currency
+budget_owner
+budget_status
+created_at
+updated_at
+```
+
+Derived fields in marts:
+
+```text
+actual_spend
+remaining_budget
+budget_spent_pct
+expected_spend_pct
+pacing_variance_pct
+pacing_status
+```
+
+Suggested `pacing_status` values:
+
+```text
+ON_TRACK
+UNDER_PACING
+OVER_PACING
+NO_BUDGET
+OVER_BUDGET
+```
+
+Why this design:
+
+- ATS spends roughly VND 4B/year on ads, so budget control is a business requirement.
+- Campaigns may choose platforms depending on campaign objective and audience.
+- Budget should be compared against valid/workable/high-intent lead quality, not only platform lead volume.
+- The model lets ATS ask whether money is being allocated to the campaigns and platforms that create quality leads.
+
+V1 source:
+
+```text
+Google Sheet / CSV maintained by ATS marketing
+```
+
+Later source:
+
+```text
+Approved budget workflow or finance system
+```
+
 ---
 
 # 5. Pipeline Design
@@ -1107,6 +1471,14 @@ inline_link_clicks
 actions
 ```
 
+Required attribution configuration:
+
+```text
+action_attribution_windows = ['1d_click']  # align with Agency where possible
+action_report_time = explicit value after validation
+report_timezone = ad account timezone
+```
+
 Load process:
 
 ```text
@@ -1121,6 +1493,7 @@ Production requirements:
 - Use rolling lookback window.
 - Keep raw JSON in MinIO.
 - Store `actions_json` in Postgres.
+- Store attribution metadata with each extracted batch/table row when possible.
 
 ## 5.2 Airtable CRM Pipeline
 
@@ -1182,6 +1555,23 @@ Attribution setting
 Exported at
 ```
 
+Agency report acceptance checks:
+
+```text
+required columns exist
+date range matches requested period
+grain is date + campaign + ad set + ad
+timezone is provided
+attribution setting is provided
+cost is non-negative
+lead metrics are non-negative
+campaign/ad names are not blank
+```
+
+Why this matters:
+
+Agency reporting is a control source. If the export settings change silently, reconciliation will create noise and waste investigation time.
+
 ## 5.4 Multi-Platform Extension
 
 For each new platform:
@@ -1210,6 +1600,38 @@ conversions
 Reason:
 
 The dashboard should not be rewritten every time a new platform is added.
+
+## 5.5 Tracking Improvement Roadmap
+
+The current system must support name-based mapping because Airtable does not store IDs or UTMs.
+
+However, the target operating model should push these fields from form/n8n/CRM into Airtable:
+
+```text
+campaign_id
+adset_id
+ad_id
+utm_source
+utm_medium
+utm_campaign
+utm_content
+utm_term
+fbclid
+gclid
+landing_page_url
+form_id
+```
+
+Implementation guidance:
+
+1. Keep name-based mapping for historical and current data.
+2. Add tracking IDs to new forms/n8n flows.
+3. Prefer ID-based joins when IDs are present.
+4. Fall back to approved canonical mapping when IDs are missing.
+
+Reason:
+
+This reduces manual mapping workload and improves attribution quality over time.
 
 ---
 
@@ -1294,7 +1716,7 @@ Why fourth:
 
 CRM lead quality is the business target. Without it, dashboard only shows ad platform activity.
 
-## Phase 5 - Build Mapping Layer
+## Phase 5 - Build Campaign Master And Mapping Layer
 
 Goal:
 
@@ -1302,15 +1724,16 @@ Prevent wrong joins between Ads, Airtable, and Agency.
 
 Tasks:
 
-1. Create `map_marketing_entity_identity`.
-2. Build normalized name helper.
-3. Generate suggested mappings.
-4. Add manual approval status.
-5. Flag unmapped rows.
+1. Create `dim_campaign_master`.
+2. Create `map_marketing_entity_identity`.
+3. Build normalized name helper.
+4. Generate suggested mappings.
+5. Add manual approval status.
+6. Flag unmapped rows.
 
 Why fifth:
 
-Airtable has formatted names and no ad IDs. Mapping is mandatory before joining CRM and Ads for business reporting.
+Airtable has formatted names and no ad IDs. Campaign master gives ATS stable business identities, and mapping connects source-specific names/IDs to those identities.
 
 ## Phase 6 - Build Reconciliation Mart
 
@@ -1330,7 +1753,29 @@ Why sixth:
 
 This directly addresses the current real business problem: lead count mismatch.
 
-## Phase 7 - Build Marketing Performance Mart
+## Phase 7 - Build Budget Governance Mart
+
+Goal:
+
+Bring planned budget and actual spend into the same reporting layer.
+
+Tasks:
+
+1. Create `raw.campaign_budget_plan`.
+2. Create `stg_campaign_budget_plan`.
+3. Create `fct_campaign_budget_monthly`.
+4. Join actual spend from `fct_paid_ads_daily`.
+5. Add pacing metrics:
+   - `remaining_budget`
+   - `budget_spent_pct`
+   - `expected_spend_pct`
+   - `pacing_status`
+
+Why seventh:
+
+With roughly VND 4B/year in ad spend, ATS needs budget governance before the executive dashboard becomes truly useful.
+
+## Phase 8 - Build Marketing Performance Mart
 
 Goal:
 
@@ -1343,11 +1788,14 @@ Tasks:
    - `cpl_platform`
    - `cpl_crm`
    - `cpl_valid`
+   - `cpl_workable`
+   - `cpl_high_intent`
 3. Add funnel rates.
 4. Add office/campaign/platform grouping.
-5. Build Executive and Marketing dashboards.
+5. Add budget pacing fields.
+6. Build Executive and Marketing dashboards.
 
-## Phase 8 - Add Google, TikTok, Zalo
+## Phase 9 - Add Google, TikTok, Zalo
 
 Goal:
 
@@ -1378,10 +1826,15 @@ clicks >= 0
 link_clicks >= 0
 platform_leads >= 0
 valid_leads >= 0
+workable_leads >= 0
+high_intent_leads >= 0
+planned_budget >= 0
+actual_spend >= 0
 date not null
 accepted_values for platform
 accepted_values for quality
 accepted_values for mapping_status
+accepted_values for attribution setting where configured
 ```
 
 ## 7.2 Data Quality Metrics
@@ -1396,21 +1849,24 @@ wrong_number_rate
 invalid_rate
 platform_vs_agency_diff
 platform_vs_crm_diff
+budget_spent_pct
+pacing_status
+over_budget_campaigns
 crm_freshness_hours
 ads_freshness_hours
 ```
 
 ## 7.3 Failure Handling
 
-| Failure | Strategy |
-| --- | --- |
-| Facebook rate limit | Retry with exponential backoff, chunk backfills |
-| Facebook API transient error | Retry |
-| Airtable API timeout | Retry, keep previous CRM mart |
-| Agency file missing | Mark reconciliation as `MISSING_AGENCY_REPORT` |
-| Mapping missing | Mark rows `UNMAPPED`, do not silently join |
-| dbt test failure | Fail pipeline and alert |
-| data stale | Alert after SLA threshold |
+| Failure                      | Strategy                                        |
+| ---------------------------- | ----------------------------------------------- |
+| Facebook rate limit          | Retry with exponential backoff, chunk backfills |
+| Facebook API transient error | Retry                                           |
+| Airtable API timeout         | Retry, keep previous CRM mart                   |
+| Agency file missing          | Mark reconciliation as `MISSING_AGENCY_REPORT`  |
+| Mapping missing              | Mark rows `UNMAPPED`, do not silently join      |
+| dbt test failure             | Fail pipeline and alert                         |
+| data stale                   | Alert after SLA threshold                       |
 
 ---
 
@@ -1429,15 +1885,23 @@ Metrics:
 
 ```text
 total_spend
+planned_budget
+remaining_budget
+budget_spent_pct
+pacing_status
 platform_leads
 crm_leads
 valid_leads
+workable_leads
+high_intent_leads
 qualified_leads
 event_confirmed_leads
 event_attended_leads
 cpl_platform
 cpl_crm
 cpl_valid
+cpl_workable
+cpl_high_intent
 office performance
 platform performance
 ```
@@ -1461,11 +1925,13 @@ Views:
 
 ```text
 campaign ranking
+budget pacing by campaign/platform
 daily spend vs leads
 CPL by platform
 CPL by campaign
 lead quality by campaign
 invalid/wrong number rate
+workable/high-intent lead trend
 office comparison
 ```
 
@@ -1484,6 +1950,8 @@ Views:
 ```text
 quality distribution
 valid lead rate
+workable lead rate
+high-intent lead rate
 wrong number rate
 duplicate lead rate
 counselor assignment rate
@@ -1546,19 +2014,21 @@ Marketing reporting rarely needs direct phone/email. Dedupe and performance anal
 
 # 10. Production Risks and Mitigations
 
-| Risk | Severity | Mitigation |
-| --- | --- | --- |
-| Campaign names differ between Ads/Airtable/Agency | High | Canonical mapping layer |
-| Airtable does not store platform IDs | High | Mapping now, improve tracking later |
-| Single `leads` metric is ambiguous | High | Split platform, website, native form, CRM, valid leads |
-| Facebook attribution updates historical data | Medium | Rolling lookback and upsert |
-| Agency exports use different settings | Medium | Store attribution/timezone/export metadata |
-| Duplicate CRM leads inflate performance | High | phone/email hash and duplicate flags |
-| Invalid leads hidden from CPL | Medium | Keep invalids, report separate CPLs |
-| API rate limits break backfills | Medium | Chunked backfill and retry |
-| PII exposed in dashboard | High | Hash/mask/restrict access |
-| Mapping mistakes corrupt business mart | High | mapping status and manual approval |
-| Airtable updates overwrite history | Medium | current-state V1, snapshots V2 |
+| Risk                                              | Severity | Mitigation                                             |
+| ------------------------------------------------- | -------- | ------------------------------------------------------ |
+| Campaign names differ between Ads/Airtable/Agency | High     | Canonical mapping layer                                |
+| Airtable does not store platform IDs              | High     | Mapping now, improve tracking later                    |
+| Single `leads` metric is ambiguous                | High     | Split platform, website, native form, CRM, valid leads |
+| Facebook attribution updates historical data      | Medium   | Rolling lookback and upsert                            |
+| Agency exports use different settings             | Medium   | Store attribution/timezone/export metadata             |
+| Duplicate CRM leads inflate performance           | High     | phone/email hash and duplicate flags                   |
+| Invalid leads hidden from CPL                     | Medium   | Keep invalids, report separate CPLs                    |
+| API rate limits break backfills                   | Medium   | Chunked backfill and retry                             |
+| PII exposed in dashboard                          | High     | Hash/mask/restrict access                              |
+| Mapping mistakes corrupt business mart            | High     | mapping status and manual approval                     |
+| Airtable updates overwrite history                | Medium   | current-state V1, snapshots V2                         |
+| Budget plan not modeled                           | High     | fct_campaign_budget_monthly and pacing dashboard       |
+| Agency optimizes to platform leads only           | High     | compare spend to valid/workable/high-intent CRM leads  |
 
 ---
 
@@ -1580,6 +2050,13 @@ These are not blockers for Phase 1, but should be answered before production sig
 12. What alert channel should receive pipeline failures?
 13. Are application and enrollment data available in Airtable or another system?
 14. Will future forms capture campaign/ad IDs or UTMs?
+15. Who owns and approves `dim_campaign_master`?
+16. What is the official definition of `qualified_leads`?
+17. Should V1 executive dashboards prioritize `valid_leads`, `workable_leads`, or `high_intent_leads`?
+18. What exact `action_report_time` should Facebook API use for Agency reconciliation?
+19. Where is monthly campaign/platform budget currently maintained?
+20. Who approves budget changes during the month?
+21. Should budget pacing be tracked by campaign, platform, office, or all three?
 
 ---
 
@@ -1593,11 +2070,14 @@ The platform should be built in this order:
 3. Create ad-level fct_paid_ads_daily
 4. Extract Airtable CRM leads
 5. Build CRM current-state fact
-6. Build canonical mapping layer
-7. Build reconciliation mart
-8. Build marketing performance mart
-9. Add Google/TikTok/Zalo
-10. Add CRM history and deeper funnel outcomes
+6. Build campaign master and canonical mapping layer
+7. Build metric definition registry
+8. Build budget governance mart
+9. Build reconciliation mart
+10. Build marketing performance mart
+11. Add tracking IDs/UTMs into Airtable flow
+12. Add Google/TikTok/Zalo
+13. Add CRM history and deeper funnel outcomes
 ```
 
 The most important architecture decision is:
@@ -1611,7 +2091,21 @@ The most important metric decision is:
 
 ```text
 Do not use one ambiguous leads column.
-Separate platform_leads, crm_leads, valid_leads, and qualified_leads.
+Separate platform_leads, crm_leads, valid_leads, workable_leads, high_intent_leads, and qualified_leads.
+```
+
+The most important tracking decision is:
+
+```text
+Mapping is a bridge.
+Long-term attribution should use campaign/ad IDs or UTMs whenever possible.
+```
+
+The most important budget decision is:
+
+```text
+Budget must be modeled as data, not kept only in agency reports or planning spreadsheets.
+Actual spend should be compared against planned budget and lead quality.
 ```
 
 The most important production decision is:
@@ -1622,4 +2116,3 @@ Do not silently hide unmapped, invalid, duplicate, or discrepant data.
 ```
 
 This design gives ATS a path from the current Facebook reporting pipeline to a scalable marketing data platform that can support paid media, CRM quality, Agency reconciliation, and future platform expansion.
-
