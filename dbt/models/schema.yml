@@ -38,6 +38,15 @@ models:
           expression: "leads >= 0"
           name: stg_facebook_leads_non_negative
       - dbt_utils.expression_is_true:
+          expression: "website_leads >= 0"
+          name: stg_facebook_website_leads_non_negative
+      - dbt_utils.expression_is_true:
+          expression: "native_form_leads >= 0"
+          name: stg_facebook_native_form_leads_non_negative
+      - dbt_utils.expression_is_true:
+          expression: "platform_leads >= 0"
+          name: stg_facebook_platform_leads_non_negative
+      - dbt_utils.expression_is_true:
           expression: "clicks <= impressions or impressions = 0"
           name: stg_facebook_clicks_leq_impressions
 
@@ -78,3 +87,40 @@ models:
           field: updated_at
           interval: 25
           name: fct_ad_spend_freshness_sla
+
+  - name: fct_paid_ads_daily
+    description: >
+      Ad-level Facebook paid ads fact for audit-ready reporting.
+      New dashboards should prefer split lead metrics over legacy leads.
+    columns:
+      - name: date
+        tests: [not_null]
+      - name: platform
+        tests:
+          - not_null
+          - accepted_values:
+              values: [facebook, google, tiktok, zalo]
+      - name: campaign_id
+        tests: [not_null]
+      - name: ad_set_id
+        tests: [not_null]
+      - name: ad_id
+        tests: [not_null]
+      - name: spend
+        tests: [not_null]
+    tests:
+      - unique:
+          column_name: >
+            date::text || '_' || platform || '_' ||
+            campaign_id || '_' || ad_set_id || '_' || ad_id
+          name: fct_paid_ads_daily_unique_grain
+      - dbt_utils.expression_is_true:
+          expression: "spend >= 0"
+      - dbt_utils.expression_is_true:
+          expression: "platform_leads >= 0"
+      - dbt_utils.expression_is_true:
+          expression: "website_leads >= 0"
+      - dbt_utils.expression_is_true:
+          expression: "native_form_leads >= 0"
+      - dbt_utils.expression_is_true:
+          expression: "link_clicks >= 0"

@@ -89,9 +89,9 @@ def task_load_staging(**context) -> int:
     Data comes from extractor.run() via re-extract (avoid XCom size limit).
     Rule: staging is always fresh — never append.
     """
-    import requests as req
     import json
     import boto3
+    from psycopg2.extras import Json
 
     ti = context["task_instance"]
     result = ti.xcom_pull(task_ids="extract", key="extract_result")
@@ -116,6 +116,19 @@ def task_load_staging(**context) -> int:
 
     hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
 
+    hook.run("""
+        ALTER TABLE raw.facebook_ads
+            ADD COLUMN IF NOT EXISTS reach INT DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS link_clicks INT DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS actions_json JSONB,
+            ADD COLUMN IF NOT EXISTS website_leads INT DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS native_form_leads INT DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS platform_leads INT DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS action_attribution_windows TEXT DEFAULT '1d_click',
+            ADD COLUMN IF NOT EXISTS action_report_time TEXT DEFAULT 'conversion',
+            ADD COLUMN IF NOT EXISTS report_timezone TEXT
+    """)
+
     # TRUNCATE first — staging is always fresh (Rule: idempotent)
     hook.run("TRUNCATE TABLE raw.facebook_ads")
 
@@ -129,7 +142,11 @@ def task_load_staging(**context) -> int:
                     r["ad_set_id"], r["ad_set_name"],
                     r["ad_id"], r["ad_name"],
                     r["date"], r["spend"],
-                    r["impressions"], r["clicks"], r["leads"],
+                    r["impressions"], r["reach"],
+                    r["clicks"], r["link_clicks"],
+                    Json(r["actions_json"]),
+                    r["website_leads"], r["native_form_leads"],
+                    r["platform_leads"], r["leads"],
                 )
                 for r in validated
             ],
@@ -138,7 +155,11 @@ def task_load_staging(**context) -> int:
                 "ad_set_id", "ad_set_name",
                 "ad_id", "ad_name",
                 "date", "spend",
-                "impressions", "clicks", "leads",
+                "impressions", "reach",
+                "clicks", "link_clicks",
+                "actions_json",
+                "website_leads", "native_form_leads",
+                "platform_leads", "leads",
             ],
             commit_every=500,
         )
@@ -239,7 +260,7 @@ with DAG(
         bash_command=(
             "cd /opt/airflow/dbt && "
             "dbt run --profiles-dir /opt/airflow/dbt --log-path /tmp/dbt-logs "
-            "--select fct_ad_spend --no-version-check --target prod"
+            "--select fct_ad_spend fct_paid_ads_daily --no-version-check --target prod"
         ),
     )
 
@@ -248,7 +269,7 @@ with DAG(
         bash_command=(
             "cd /opt/airflow/dbt && "
             "dbt test --profiles-dir /opt/airflow/dbt --log-path /tmp/dbt-logs "
-            "--select fct_ad_spend --no-version-check --target prod"
+            "--select fct_ad_spend fct_paid_ads_daily --no-version-check --target prod"
         ),
     )
 

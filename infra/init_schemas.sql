@@ -69,8 +69,17 @@ CREATE TABLE IF NOT EXISTS raw.facebook_ads (
     date            DATE,
     spend           NUMERIC(12, 4),   -- FB returns string, coerced to numeric
     impressions     INT,
+    reach           INT DEFAULT 0,
     clicks          INT,
+    link_clicks     INT DEFAULT 0,
+    actions_json    JSONB,
+    website_leads   INT DEFAULT 0,
+    native_form_leads INT DEFAULT 0,
+    platform_leads  INT DEFAULT 0,
     leads           INT DEFAULT 0,    -- EC-05: may be 0 if no lead form
+    action_attribution_windows TEXT DEFAULT '1d_click',
+    action_report_time TEXT DEFAULT 'conversion',
+    report_timezone TEXT,
     loaded_at       TIMESTAMPTZ DEFAULT NOW()
 );
 

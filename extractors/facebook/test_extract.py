@@ -42,7 +42,9 @@ def test_valid_row_passes():
     assert insight.campaign_id == "123456789"
     assert insight.spend == 778.50
     assert insight.impressions == 1500
+    assert insight.reach == 0
     assert insight.clicks == 42
+    assert insight.link_clicks == 0
     assert insight.leads == 0
 
 
@@ -107,6 +109,9 @@ def test_leads_from_native_lead_form():
     ]
     insight = FbAdInsight.model_validate(row)
     assert insight.leads == 5
+    assert insight.native_form_leads == 5
+    assert insight.website_leads == 0
+    assert insight.platform_leads == 5
 
 
 def test_leads_from_pixel_website_form():
@@ -118,6 +123,9 @@ def test_leads_from_pixel_website_form():
     ]
     insight = FbAdInsight.model_validate(row)
     assert insight.leads == 8
+    assert insight.website_leads == 8
+    assert insight.native_form_leads == 0
+    assert insight.platform_leads == 8
 
 
 def test_leads_pixel_priority_over_native():
@@ -130,6 +138,9 @@ def test_leads_pixel_priority_over_native():
     insight = FbAdInsight.model_validate(row)
     # Must NOT sum (10+7=17), must pick pixel (7)
     assert insight.leads == 7
+    assert insight.website_leads == 7
+    assert insight.native_form_leads == 10
+    assert insight.platform_leads == 17
 
 
 def test_leads_onsite_web_lead_fallback():
@@ -140,6 +151,17 @@ def test_leads_onsite_web_lead_fallback():
     ]
     insight = FbAdInsight.model_validate(row)
     assert insight.leads == 3
+    assert insight.website_leads == 3
+    assert insight.native_form_leads == 0
+    assert insight.platform_leads == 3
+
+
+def test_reach_and_link_clicks_coerced():
+    """Audit metrics should be coerced from FB string values."""
+    row = valid_row(reach="900", inline_link_clicks="31")
+    insight = FbAdInsight.model_validate(row)
+    assert insight.reach == 900
+    assert insight.link_clicks == 31
 
 
 def test_leads_negative_raises():
@@ -195,9 +217,13 @@ def test_to_staging_row_keys():
         "campaign_id", "campaign_name",
         "ad_set_id", "ad_set_name",
         "ad_id", "ad_name",
-        "date", "spend", "impressions", "clicks", "leads",
+        "date", "spend", "impressions", "reach",
+        "clicks", "link_clicks", "actions_json",
+        "website_leads", "native_form_leads", "platform_leads", "leads",
     }
     assert set(staging.keys()) == expected_keys
     assert staging["leads"] == 2
+    assert staging["native_form_leads"] == 2
+    assert staging["platform_leads"] == 2
     assert staging["spend"] == 778.50
     assert staging["date"] == date(2026, 3, 15)

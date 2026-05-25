@@ -39,8 +39,10 @@ INSIGHTS_FIELDS = [
     "date_start",
     "spend",
     "impressions",
+    "reach",
     "clicks",
-    "actions",  # contains leads — parsed by FbAdInsight.parse_leads_from_actions
+    "inline_link_clicks",
+    "actions",  # contains lead breakdown — preserved as actions_json
 ]
 
 FB_API_VERSION = "v19.0"
@@ -80,6 +82,8 @@ class FacebookExtractor(BaseExtractor):
             "level": "ad",
             "time_range": f'{{"since":"{start_date}","until":"{end_date}"}}',  # GOTCHA: time_range dict
             "time_increment": 1,  # one row per day per ad
+            "action_attribution_windows": '["1d_click"]',
+            "action_report_time": "conversion",
             "limit": 500,         # max per page
         }
 
@@ -157,8 +161,9 @@ class FacebookExtractor(BaseExtractor):
             error_body = response.json().get("error", {})
             error_code = error_body.get("code", 0)
             # 2 = temporary service unavailable / unknown transient API error.
+            # 4 = application request limit reached.
             # 17/32/613 = rate limit / throttling variants.
-            if error_code in (2, 17, 32, 613):
+            if error_body.get("is_transient") or error_code in (2, 4, 17, 32, 613):
                 logger.warning(
                     "[facebook] Retryable FB error code %s — will retry: %s",
                     error_code,

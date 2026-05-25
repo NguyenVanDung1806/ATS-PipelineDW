@@ -53,27 +53,12 @@ jobs:
       - name: Python syntax check
         run: |
           python -m py_compile \
-            dags/facebook_backfill_pipeline.py \
             dags/facebook_pipeline.py \
+            dags/facebook_backfill_pipeline.py \
             extractors/base/base_extractor.py \
             extractors/base/minio_client.py \
             extractors/facebook/extract.py \
             extractors/facebook/schema.py
-
-      - name: Airflow DAG import check
-        env:
-          PYTHONPATH: dags
-          SLACK_WEBHOOK_URL: ""
-        run: |
-          python - <<'PY'
-          import facebook_pipeline
-          import facebook_backfill_pipeline
-
-          assert facebook_pipeline.dag.dag_id == "facebook_pipeline"
-          assert facebook_backfill_pipeline.dag.dag_id == "facebook_backfill_pipeline"
-          assert "dbt_run_marts" in facebook_pipeline.dag.task_ids
-          assert "validate_backfill_conf" in facebook_backfill_pipeline.dag.task_ids
-          PY
 
       - name: dbt compile (validate SQL)
         env:

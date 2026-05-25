@@ -132,7 +132,7 @@ with DAG(
         bash_command=(
             "cd /opt/airflow/dbt && "
             "dbt run --profiles-dir /opt/airflow/dbt --log-path /tmp/dbt-logs "
-            "--select fct_ad_spend --no-version-check --target prod "
+            "--select fct_ad_spend fct_paid_ads_daily --no-version-check --target prod "
             "{% if dag_run.conf.get('full_refresh') %}--full-refresh{% endif %}"
         ),
     )
@@ -142,7 +142,7 @@ with DAG(
         bash_command=(
             "cd /opt/airflow/dbt && "
             "dbt test --profiles-dir /opt/airflow/dbt --log-path /tmp/dbt-logs "
-            "--select fct_ad_spend --no-version-check --target prod"
+            "--select fct_ad_spend fct_paid_ads_daily --no-version-check --target prod"
         ),
     )
 
